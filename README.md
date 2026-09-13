@@ -8,7 +8,7 @@ REST API for a doctor-appointment platform: patients book consultations, doctors
 
 This is an early build, not the finished product. Right now the only working feature is authentication — a patient can register, log in, and fetch their own profile. Appointments, doctor schedules, payments, and everything else in [`Project Requirements.md`](./Project%20Requirements.md) is planned but not built yet.
 
-Treat this README as a description of what the code *actually does today*, including its rough edges. A few are called out directly in [Known limitations](#known-limitations) further down — read that section before assuming something is broken on your end.
+Treat this README as a description of what the code _actually does today_, including its rough edges. A few are called out directly in [Known limitations](#known-limitations) further down — read that section before assuming something is broken on your end.
 
 ## Prerequisites
 
@@ -81,18 +81,18 @@ curl http://localhost:5000/
 
 `src/app/config/index.ts` is the only place `process.env` is read — application code should import `config` from there rather than reaching for `process.env` directly.
 
-| Variable                  | What it's for                                                      |
-| -------------------------- | ------------------------------------------------------------------ |
-| `NODE_ENV`                 | `development` includes the raw error and stack trace in API error responses |
-| `PORT`                     | Port the HTTP server listens on                                    |
-| `DATABASE_URL`             | Postgres connection string, used by both Prisma and the app        |
-| `JWT_ACCESS_SECRET`        | Signing key for access tokens                                      |
-| `JWT_REFRESH_SECRET`       | Signing key for refresh tokens                                     |
-| `JWT_ACCESS_EXPIRES_IN`    | Access token lifetime (e.g. `15m`, `1d`)                            |
-| `JWT_REFRESH_EXPIRES_IN`   | Refresh token lifetime                                              |
-| `BCRYPT_SALT_ROUNDS`       | Read into config but not wired up yet — password hashing currently uses a hardcoded value (see below) |
-| `BACKEND_URL`              | Read into config but not used anywhere yet                          |
-| `FRONTEND_URL`             | Added to the CORS allowlist                                        |
+| Variable                 | What it's for                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`               | `development` includes the raw error and stack trace in API error responses                           |
+| `PORT`                   | Port the HTTP server listens on                                                                       |
+| `DATABASE_URL`           | Postgres connection string, used by both Prisma and the app                                           |
+| `JWT_ACCESS_SECRET`      | Signing key for access tokens                                                                         |
+| `JWT_REFRESH_SECRET`     | Signing key for refresh tokens                                                                        |
+| `JWT_ACCESS_EXPIRES_IN`  | Access token lifetime (e.g. `15m`, `1d`)                                                              |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token lifetime                                                                                |
+| `BCRYPT_SALT_ROUNDS`     | Read into config but not wired up yet — password hashing currently uses a hardcoded value (see below) |
+| `BACKEND_URL`            | Read into config but not used anywhere yet                                                            |
+| `FRONTEND_URL`           | Added to the CORS allowlist                                                                           |
 
 There's no validation on startup: if a variable is missing, `config` simply holds `undefined` for it, and the app boots anyway. The first sign of trouble is usually a runtime error the moment that value is actually used — for `JWT_ACCESS_SECRET`, that means the very first login or registration.
 
@@ -144,13 +144,13 @@ Prisma's schema is split across multiple files, wired together by `prisma.config
 
 Base URL: `http://localhost:5000`
 
-| Method | Path                          | Auth required | Body                         |
-| ------ | ----------------------------- | ------------- | ----------------------------- |
-| `GET`  | `/`                            | –             | health check                  |
-| `POST` | `/api/v1/auth/register`        | –             | `name`, `email`, `password`   |
-| `POST` | `/api/v1/auth/login`           | –             | `email`, `password`           |
-| `GET`  | `/api/v1/auth/me`              | yes           | –                              |
-| `POST` | `/api/v1/auth/refresh-token`   | –             | reads the `refreshToken` cookie |
+| Method | Path                         | Auth required | Body                            |
+| ------ | ---------------------------- | ------------- | ------------------------------- |
+| `GET`  | `/`                          | –             | health check                    |
+| `POST` | `/api/v1/auth/register`      | –             | `name`, `email`, `password`     |
+| `POST` | `/api/v1/auth/login`         | –             | `email`, `password`             |
+| `GET`  | `/api/v1/auth/me`            | yes           | –                               |
+| `POST` | `/api/v1/auth/refresh-token` | –             | reads the `refreshToken` cookie |
 
 Every response from `sendResponse` (i.e. everything except the root route) has this shape:
 
@@ -160,7 +160,7 @@ Every response from `sendResponse` (i.e. everything except the root route) has t
 
 ### Tokens: use the response body, not the cookies
 
-`register` and `login` return `accessToken` and `refreshToken` two ways: in the JSON body, and as cookies. **Use the JSON body.** The cookies are set with `sameSite: "none"` but `secure: false` — that combination is invalid under the cookie spec, and modern browsers silently drop the cookie rather than send it. Grab `data.accessToken` from the response and send it yourself:
+`register` and `login` return `accessToken` and `refreshToken` two ways: in the JSON body, and as cookies. **Use the JSON body.** The cookies are set with `sameSite: config.node_env === "production" ? "lax" : "none"` but `secure: config.node_env === "production" ? false : true` — that combination is invalid under the cookie spec, and modern browsers silently drop the cookie rather than send it. Grab `data.accessToken` from the response and send it yourself:
 
 ```bash
 curl -X POST http://localhost:5000/api/v1/auth/register \
@@ -180,7 +180,11 @@ Four roles exist in the schema — `SUPER_ADMIN`, `ADMIN`, `DOCTOR`, `PATIENT` �
 `auth(...roles)`, exported from `checkAuth.ts`, is the route guard:
 
 ```ts
-router.get('/me', auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN), AuthController.getMe)
+router.get(
+  "/me",
+  auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN),
+  AuthController.getMe,
+);
 ```
 
 What it actually does, in order:
@@ -188,7 +192,7 @@ What it actually does, in order:
 1. Reads the token from the `accessToken` cookie, falling back to the `Authorization` header.
 2. Verifies the JWT signature.
 3. Checks the role **from the token payload** against the roles the route allows.
-4. Looks the user up in the database by matching `id`, `email`, `name`, *and* `role` all at once — if any of those four have changed since the token was issued, the lookup fails and the request is rejected, even though the account still exists.
+4. Looks the user up in the database by matching `id`, `email`, `name`, _and_ `role` all at once — if any of those four have changed since the token was issued, the lookup fails and the request is rejected, even though the account still exists.
 5. Rejects the request only if the user's `status` is exactly `BLOCKED`. It does **not** check `isDeleted` or a `DELETED` status, so a soft-deleted account can still authenticate as long as `status` wasn't also set to `BLOCKED`.
 
 ## Known limitations
@@ -204,17 +208,17 @@ Worth knowing before you spend time debugging what looks like your own mistake:
 
 New features go under `src/app/module/<name>/` as four files with strict responsibilities:
 
-| File                   | Responsibility                                                    |
-| ---------------------- | ------------------------------------------------------------------- |
+| File                   | Responsibility                                                         |
+| ---------------------- | ---------------------------------------------------------------------- |
 | `<name>.route.ts`      | Wires `auth(...roles)` to controller functions, exports `<Name>Routes` |
 | `<name>.controller.ts` | Reads `req.body` / `req.user`, calls the service, calls `sendResponse` |
-| `<name>.service.ts`    | All business logic and every Prisma call for the module              |
-| `<name>.interface.ts`  | The TypeScript types for the module's payloads                       |
+| `<name>.service.ts`    | All business logic and every Prisma call for the module                |
+| `<name>.interface.ts`  | The TypeScript types for the module's payloads                         |
 
 Then mount it in `app.ts` next to the existing line:
 
 ```ts
-app.use('/api/v1/doctor', DoctorRoutes)
+app.use("/api/v1/doctor", DoctorRoutes);
 ```
 
 Two rules keep the module boundaries useful rather than decorative:
@@ -256,19 +260,17 @@ The username or password in `DATABASE_URL` doesn't match a real role on your Pos
 **Login or register throws instead of returning a token**
 Check that `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are actually set in your `.env` — `jsonwebtoken` throws if the signing secret is `undefined`, and this project doesn't validate environment variables on startup.
 
-
-
 Active Customer Wallets (Successful Transactions)
-Key	Wallet Number
-1	01770618575
-2	01929918378
-3	01770618576
-4	01877722345
-5	01619777282
-6	01619777283
+Key Wallet Number
+1 01770618575
+2 01929918378
+3 01770618576
+4 01877722345
+5 01619777282
+6 01619777283
 
 Wallets for Failed Transaction
 
-Key	Wallet Number	Failure Reason
-1	01823074817	Insufficient Balance
-2	01823074818	Debit Block
+Key Wallet Number Failure Reason
+1 01823074817 Insufficient Balance
+2 01823074818 Debit Block
