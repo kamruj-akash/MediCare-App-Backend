@@ -247,7 +247,6 @@ const refreshToken = async (token: string) => {
 
 const googleLogin = async (payload: IGLogin) => {
 	let googleIdTokenPayload: TokenPayload | undefined;
-
 	try {
 		const ticket = await googleClient.verifyIdToken({
 			idToken: payload.idToken,
