@@ -258,6 +258,7 @@ const getAllDoctors = async (query: IQuery) => {
 	const limit = Number(query.limit) || 10;
 	const sortBy = query.sortBy || "createdAt";
 	const sortOrder = query.sortOrder || "asc";
+	const verificationStatus = query.status || null;
 
 	const andConditions: DoctorWhereInput[] = [];
 
@@ -270,6 +271,9 @@ const getAllDoctors = async (query: IQuery) => {
 				{ licenseNumber: { contains: searchTerm, mode: "insensitive" } },
 			],
 		});
+	}
+	if (verificationStatus) {
+		andConditions.push({ verificationStatus });
 	}
 	andConditions.push({ isDeleted: false });
 

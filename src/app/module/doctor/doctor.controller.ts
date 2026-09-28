@@ -21,7 +21,7 @@ const verifyDoctor = catchAsync(async (req, res) => {
 	const additionalFiles = files?.additionalFiles?.map((file: any) => file);
 	const payload = req.body.body;
 
-	const result = await doctorService.verifyDoctor(
+	const data = await doctorService.verifyDoctor(
 		JSON.parse(payload),
 		resume,
 		additionalFiles,
@@ -30,7 +30,7 @@ const verifyDoctor = catchAsync(async (req, res) => {
 		statusCode: 201,
 		success: true,
 		message: "Verify Success, You can now login as a doctor",
-		data: result,
+		data,
 	});
 });
 
@@ -48,12 +48,12 @@ const approveDoctor = catchAsync(async (req, res) => {
 
 const getAllDoctors = catchAsync(async (req, res) => {
 	const query = req.query;
-	const result = await doctorService.getAllDoctors(query);
+	const data = await doctorService.getAllDoctors(query);
 	sendResponse(res, {
 		statusCode: 200,
 		success: true,
 		message: "Doctors fetched successfully",
-		data: result,
+		data,
 	});
 });
 
