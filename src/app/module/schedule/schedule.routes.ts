@@ -34,9 +34,9 @@ router.patch(
 	auth(Role.DOCTOR),
 	scheduleController.publishSchedule,
 );
-router.patch(
+router.delete(
 	"/delete-schedule/:id",
-	auth(Role.ADMIN),
+	auth(Role.DOCTOR),
 	scheduleController.deleteSchedule,
 );
 
