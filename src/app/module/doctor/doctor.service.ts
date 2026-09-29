@@ -258,7 +258,6 @@ const getAllDoctors = async (query: IQuery) => {
 	const limit = Number(query.limit) || 10;
 	const sortBy = query.sortBy || "createdAt";
 	const sortOrder = query.sortOrder || "asc";
-	const verificationStatus = query.status || null;
 
 	const andConditions: DoctorWhereInput[] = [];
 
@@ -268,13 +267,11 @@ const getAllDoctors = async (query: IQuery) => {
 				{ name: { contains: searchTerm, mode: "insensitive" } },
 				{ qualification: { contains: searchTerm, mode: "insensitive" } },
 				{ specialization: { contains: searchTerm, mode: "insensitive" } },
-				{ licenseNumber: { contains: searchTerm, mode: "insensitive" } },
 			],
 		});
 	}
-	if (verificationStatus) {
-		andConditions.push({ verificationStatus });
-	}
+	// public route: only expose approved doctors, regardless of query
+	andConditions.push({ verificationStatus: DoctorVerificationStatus.APPROVE });
 	andConditions.push({ isDeleted: false });
 
 	const doctors = await prisma.doctor.findMany({
@@ -286,10 +283,20 @@ const getAllDoctors = async (query: IQuery) => {
 		orderBy: {
 			[sortBy]: sortOrder,
 		},
+		omit: {
+			licenseNumber: true,
+			rejectionReason: true,
+			reviewedBy: true,
+			reviewedAt: true,
+			resume: true,
+			additionalFiles: true,
+		},
 		include: {
 			user: {
 				omit: {
 					password: true,
+					googleId: true,
+					phoneNo: true,
 				},
 			},
 		},
