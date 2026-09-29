@@ -73,6 +73,17 @@ const deleteSchedule = catchAsync(async (req, res) => {
 		data: schedule,
 	});
 });
+const getScheduleByDoctorId = catchAsync(async (req, res) => {
+	const schedule = await scheduleService.getScheduleByDoctorId(
+		req.params.doctorId as string,
+	);
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Doctor's today schedule retrieved successfully",
+		data: schedule,
+	});
+});
 const publishSchedule = catchAsync(async (req, res) => {
 	const user = req.user as RequestUser;
 	const schedule = await scheduleService.publishSchedule(
@@ -92,6 +103,7 @@ export const scheduleController = {
 	getMySchedule,
 	getAllSchedules,
 	getScheduleById,
+	getScheduleByDoctorId,
 	updateSchedule,
 	publishSchedule,
 	deleteSchedule,

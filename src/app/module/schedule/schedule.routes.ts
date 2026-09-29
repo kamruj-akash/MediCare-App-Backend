@@ -24,6 +24,10 @@ router.get(
 	auth(Role.ADMIN),
 	scheduleController.getScheduleById,
 );
+router.get(
+	"/doctor/:doctorId/today",
+	scheduleController.getScheduleByDoctorId,
+);
 router.patch(
 	"/schedule/:id",
 	auth(Role.DOCTOR),
